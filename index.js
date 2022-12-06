@@ -3,7 +3,7 @@ export function Tokenizer(concurrency = 1) {
 
   const next = () => {
     if(queue.length) queue.shift()(next)
-    concurrency++
+    else concurrency++
   }
 
   return cb => {
