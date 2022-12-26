@@ -14,17 +14,26 @@ export function Tokenizer(concurrency = 1) {
 
 }
 
-export const AsyncTokenizer = (concurrency = 1) => {
-  const tokenizer = Tokenizer(concurrency)
-  return () => new Promise(resolve => tokenizer(resolve))
+export const DelayTokenizer = (autoResolveDelayMc = 1000, tokenizer = Tokenizer(1)) => {
+  return cb => tokenizer(next => {
+    setTimeout(next, autoResolveDelayMc)
+    cb()
+  })
 }
 
-export const AsyncBlocker = (fn, concurrency) => {
-  const getToken = AsyncTokenizer(concurrency)
-  return function() {
-    return getToken().then(next => fn.call(this, ...arguments).finally(next))
-  }
+export const AsyncTokenizer = (tokenizer = Tokenizer(1)) => () =>
+  new Promise(resolve => tokenizer(resolve))
+
+export const AsyncDelayTokenizer = (autoResolveMc = 1000, tokenizer = Tokenizer(1)) =>
+  new Promise(resolve => tokenizer(next => {
+    setTimeout(next, autoResolveMc)
+    resolve()
+  }))
+
+export const AsyncBlocker = (fn, tokenizer = Tokenizer(1)) => function() {
+  return tokenizer().then(next => fn.call(this, ...arguments).finally(next))
 }
+
 
 export const AsyncDelayBlocker = (fn, concurrency, delay) => {
   const getToken = AsyncTokenizer(concurrency)
