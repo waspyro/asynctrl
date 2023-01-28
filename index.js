@@ -34,13 +34,23 @@ export const AsyncBlocker = (fn, tokenizer = Tokenizer(1)) => function() {
   return tokenizer().then(next => fn.call(this, ...arguments).finally(next))
 }
 
-
 export const AsyncDelayBlocker = (fn, concurrency, delay) => {
-  const getToken = AsyncTokenizer(concurrency)
+  const getToken = AsyncTokenizer(Tokenizer(concurrency))
   return function () {
     return getToken().then(next => {
       setTimeout(next, delay)
       return fn.call(this, ...arguments)
     })
   }
+}
+
+export const AsyncDelayFnBlocker = (fn, delay = 1000, concurrencyNumberOrTokenizer = 1) => {
+  const tokenizer = typeof concurrencyNumberOrTokenizer === 'function'
+      ? concurrencyNumberOrTokenizer
+      : Tokenizer(concurrencyNumberOrTokenizer)
+  const getToken = AsyncTokenizer(tokenizer)
+  return (...args) => getToken().then(next => {
+      setTimeout(next, delay)
+      return fn.apply(this, args)
+    })
 }
