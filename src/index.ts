@@ -45,7 +45,7 @@ export default class Tokenizer {
     wrap: AsyncFnWrapper = (fn, ctx?) => (...args) =>
         this.holdp().then(free => fn.apply(ctx, args).finally(free))
 
-    autoFreeOnTimeout = (mcTime: number, allowFreeWhenResolved = true) => {
+    autoFreeOnTimeout = (mcTime: number, allowFreeWhenResolved = false) => {
         this.hold = (onFree: DataCallback) => this.#hold((free) => {
             setTimeout(free, mcTime)
             onFree(() => allowFreeWhenResolved && free())
