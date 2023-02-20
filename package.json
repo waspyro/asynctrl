@@ -1,13 +1,19 @@
 {
-  "type": "module",
   "name": "asynctrl",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
   "scripts": {
+    "prepare": "rm -rf dist && tsc --outDir dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "description": "",
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^18.14.0"
+  }
 }
