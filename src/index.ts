@@ -2,7 +2,9 @@ import {AsyncFnWrapper, DataCallback, NotifyCallback} from "./types";
 
 export default class Tokenizer {
     #queue: NotifyCallback[] = []
-    #arrAccess: 'pop' | 'shift' = 'pop'
+    //using "pop" by default because it's just faster,
+    //if order of execution is really matters should be "shift"
+    readonly #arrAccess: 'pop' | 'shift' = 'pop'
     private concurrency: number
 
     constructor(concurrency = 1, lastInFirstOut = false) {
@@ -11,7 +13,7 @@ export default class Tokenizer {
     }
 
     #free = () => {
-        if(this.#queue.length) this.#queue.shift()!()
+        if(this.#queue.length) this.#queue[this.#arrAccess]()!()
         else this.concurrency++
     }
 
@@ -27,7 +29,7 @@ export default class Tokenizer {
     #hold = (onOpen: DataCallback) => {
         if(this.concurrency === 0) {
             let cancelled = false
-            let free = (): void => {cancelled = true}
+            let free = () => cancelled = true
             this.#queue.push(() => cancelled || onOpen(free = this.#freeOnce()))
             return () => free()
         } else {
