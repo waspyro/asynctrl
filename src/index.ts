@@ -1,3 +1,5 @@
+import {AsyncFnWrapper, DataCallback, NotifyCallback} from "./types";
+
 export default class Tokenizer {
     #queue: NotifyCallback[] = []
     #arrAccess: 'pop' | 'shift' = 'pop'
@@ -57,10 +59,3 @@ export default class Tokenizer {
     }
 
 }
-
-type NotifyCallback = () => void
-type DataCallback = (data: any) => void
-type EmptyCallback = (freeFn: () => void) => void
-type AsyncFn = (...args: any[]) => Promise<any>
-type AsyncFnWrapper = <Args extends any[]>(fn: (...args: Args) => Promise<any>, ctx?: any)
-    => (...args: Args) => ReturnType<typeof fn>
