@@ -11,7 +11,7 @@ export default class Tokenizer {
     }
 
     #free = () => {
-        if(this.#queue.length) this.#queue.shift()()
+        if(this.#queue.length) this.#queue.shift()!()
         else this.concurrency++
     }
 
