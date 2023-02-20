@@ -1,5 +1,5 @@
 export default class Tokenizer {
-    #queue: EmptyCallback[] = []
+    #queue: NotifyCallback[] = []
     #arrAccess: 'pop' | 'shift' = 'pop'
     private concurrency: number
 
@@ -8,44 +8,59 @@ export default class Tokenizer {
         this.concurrency = concurrency
     }
 
-    free = () => {
+    #free = () => {
         if(this.#queue.length) this.#queue.shift()()
         else this.concurrency++
-        return this
     }
 
-    #hold = (onFree: EmptyCallback): number => {
-        if(this.concurrency === 0) return 0 - this.#queue.push(onFree)
-        setImmediate(() => onFree())
-        return this.concurrency--
+    #freeOnce = () => {
+        let freed = false
+        return () => {
+            if (freed) return false
+            this.#free()
+            return freed = true
+        }
+    }
+
+    #hold = (onOpen: DataCallback) => {
+        if(this.concurrency === 0) {
+            let cancelled = false
+            let free = (): void => {cancelled = true}
+            this.#queue.push(() => cancelled || onOpen(free = this.#freeOnce()))
+            return () => free()
+        } else {
+            const free = this.#freeOnce()
+            setImmediate(() => onOpen(free))
+            this.concurrency--
+            return free
+        }
     }
 
     hold = this.#hold
 
-    holdp = () => new Promise(resolve => this.hold(resolve as EmptyCallback))
+    holdp = (): Promise<()=>void> => new Promise(resolve => this.hold(resolve))
 
-    freet = (timeout = 0) => {
-        setTimeout(this.free, timeout)
+    wrap: AsyncFnWrapper = (fn, ctx?) => (...args) =>
+        this.holdp().then(free => fn.apply(ctx, args).finally(free))
+
+    autoFreeOnTimeout = (mcTime: number, allowFreeWhenResolved = true) => {
+        this.hold = (onFree: DataCallback) => this.#hold((free) => {
+            setTimeout(free, mcTime)
+            onFree(() => allowFreeWhenResolved && free())
+        })
         return this
     }
 
-    blockAsyncFn = (asyncFn: AsyncFn, ctx?: any) => (...args: any[]) =>
-        this.hold(() => asyncFn.apply(ctx, args).finally(this.free))
-
-    freeOnTimeout = (mcTime: number) => {
-        this.hold = (onFree: EmptyCallback) => {
-            this.freet(mcTime)
-            return this.#hold(onFree)
-        }
-        return this
-    }
-
-    disableFreeOnTimeout = () => {
+    disableAutoFreeOnTimeout = () => {
         this.hold = this.#hold
         return this
     }
 
 }
 
-type EmptyCallback = () => void
+type NotifyCallback = () => void
+type DataCallback = (data: any) => void
+type EmptyCallback = (freeFn: () => void) => void
 type AsyncFn = (...args: any[]) => Promise<any>
+type AsyncFnWrapper = <Args extends any[]>(fn: (...args: Args) => Promise<any>, ctx?: any)
+    => (...args: Args) => ReturnType<typeof fn>
